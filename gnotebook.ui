@@ -59,30 +59,47 @@
             <property name="vexpand">True</property>
             <child>
               <object class="GtkPaned">
+                <property name="wide-handle">True</property>
                 <child>
-                  <object class="GtkBox">
-                    <property name="orientation">vertical</property>
-                    <child>
-                      <object class="GtkTreeView" id="pages_view">
-                        <property name="reorderable">True</property>
-                        <property name="vexpand">True</property>
-                        <signal name="row-activated" handler="select_page"/>
-                      </object>
-                    </child>
+                  <object class="GtkScrolledWindow">
+                    <property name="hscrollbar-policy">never</property>
                     <child>
                       <object class="GtkBox">
-                        <property name="css-classes">toolbar</property>
-                        <property name="homogeneous">True</property>
+                        <property name="orientation">vertical</property>
                         <child>
-                          <object class="GtkButton" id="edit_button">
-                            <property name="icon-name">text-editor-symbolic</property>
-                            <signal name="clicked" handler="rename_page"/>
+                          <object class="GtkTreeView" id="pages_view">
+                            <property name="vexpand">True</property>
+                            <signal name="row-activated" handler="select_page"/>
                           </object>
                         </child>
                         <child>
-                          <object class="GtkButton" id="delete_button">
-                            <property name="icon-name">edit-delete</property>
-                            <signal name="clicked" handler="delete_page"/>
+                          <object class="GtkBox">
+                            <property name="css-classes">toolbar</property>
+                            <property name="homogeneous">True</property>
+                            <child>
+                              <object class="GtkButton" id="edit_button">
+                                <property name="icon-name">text-editor-symbolic</property>
+                                <signal name="clicked" handler="rename_page"/>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkButton" id="delete_button">
+                                <property name="icon-name">edit-delete</property>
+                                <signal name="clicked" handler="delete_page"/>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkButton" id="up_button">
+                                <property name="icon-name">go-up</property>
+                                <signal name="clicked" handler="move_up"/>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkButton" id="down_button">
+                                <property name="icon-name">go-down</property>
+                                <signal name="clicked" handler="move_down"/>
+                              </object>
+                            </child>
                           </object>
                         </child>
                       </object>

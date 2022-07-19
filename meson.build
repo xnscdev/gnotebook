@@ -5,6 +5,7 @@ gnome = import('gnome')
 deps = [
   dependency('glib-2.0', version: '>= 2.52.0'),
   dependency('gobject-2.0', version: '>= 2.52.0'),
+  dependency('gee-0.8', version: '>= 0.8.0'),
   dependency('gtk4')
 ]
 

@@ -1,3 +1,4 @@
+using Gee;
 using Gtk;
 
 [GtkTemplate (ui = "/org/xnsc/gnotebook/gnotebook.ui")]
@@ -6,6 +7,8 @@ public class GN.Window : ApplicationWindow {
 		Object (application: app);
 		setup_pages_view ();
 	}
+
+	private ArrayList<Page> pages = new ArrayList<Page> ();
 
 	[GtkChild]
 	private unowned TreeView pages_view;
@@ -31,6 +34,7 @@ public class GN.Window : ApplicationWindow {
 		}
 		model.append (out iter);
 		model.set (iter, 0, name);
+		pages.add (new Page ());
 	}
 
 	[GtkCallback]
@@ -68,14 +72,53 @@ public class GN.Window : ApplicationWindow {
 		var model = pages_view.get_model () as Gtk.ListStore;
 		TreeIter iter;
 		if (pages_view.get_selection ().get_selected (null, out iter)) {
+			int index = iter_index (iter);
+			pages.remove_at (index);
 			model.remove (ref iter);
+		}
+	}
+
+	[GtkCallback]
+	private void move_up (Button button) {
+		var model = pages_view.get_model () as Gtk.ListStore;
+		TreeIter iter;
+		if (pages_view.get_selection ().get_selected (null, out iter)) {
+			TreeIter prev = iter.copy ();
+			if (model.iter_previous (ref prev)) {
+				int index = iter_index (iter);
+				var temp = pages.get (index - 1);
+				pages.set (index - 1, pages.get (index));
+				pages.set (index, temp);
+				model.move_before (ref iter, prev);
+			}
+		}
+	}
+
+	[GtkCallback]
+	private void move_down (Button button) {
+		var model = pages_view.get_model () as Gtk.ListStore;
+		TreeIter iter;
+		if (pages_view.get_selection ().get_selected (null, out iter)) {
+			TreeIter next = iter.copy ();
+			if (model.iter_next (ref next)) {
+				int index = iter_index (iter);
+				var temp = pages.get (index + 1);
+				pages.set (index + 1, pages.get (index));
+				pages.set (index, temp);
+				model.move_after (ref iter, next);
+			}
 		}
 	}
 
 	[GtkCallback]
 	private void select_page (TreeView view, TreePath path,
 							  TreeViewColumn? column) {
-		print ("Clicked page\n");
+		var model = pages_view.get_model ();
+		TreeIter iter;
+		if (model.get_iter (out iter, path)) {
+			int index = iter_index (iter);
+			page_window.set_child (pages.get (index));
+		}
 	}
 
 	private void setup_pages_view () {
@@ -107,5 +150,12 @@ public class GN.Window : ApplicationWindow {
 		if (pages_view.get_selection ().get_selected (null, out iter)) {
 			model.set (iter, 0, new_name, -1);
 		}
+	}
+
+	private int iter_index (TreeIter iter) {
+		var model = pages_view.get_model ();
+		var path = model.get_path (iter);
+		return_if_fail (path.get_depth () == 1);
+		return path.get_indices ()[0];
 	}
 }
