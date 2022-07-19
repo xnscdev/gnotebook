@@ -181,7 +181,7 @@ public class GN.Window : ApplicationWindow {
 	private int iter_index (TreeIter iter) {
 		var model = pages_view.get_model ();
 		var path = model.get_path (iter);
-		return_if_fail (path.get_depth () == 1);
+		return_val_if_fail (path.get_depth () == 1, -1);
 		return path.get_indices ()[0];
 	}
 
