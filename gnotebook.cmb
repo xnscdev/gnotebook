@@ -44,6 +44,7 @@
 	(1,11,"GtkWidget","margin-start","8",None,None,None,None,None),
 	(1,11,"GtkWidget","vexpand","True",None,None,None,None,None),
 	(1,12,"GtkPaned","wide-handle","True",None,None,None,None,None),
+	(1,14,"GtkScrolledWindow","hscrollbar-policy","never",None,None,None,None,None),
 	(1,15,"GtkButton","icon-name","folder-new",None,None,None,None,None),
 	(1,15,"GtkWidget","tooltip-text","New Notebook",None,None,None,None,None),
 	(1,16,"GtkButton","icon-name","edit-redo",None,None,None,None,None),

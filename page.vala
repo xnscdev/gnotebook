@@ -7,7 +7,9 @@ public class GN.Page : Box {
 	}
 
 	internal void insert_text () {
-		append (new TextView ());
+		var view = new TextView ();
+		view.wrap_mode = WrapMode.WORD;
+		append (view);
 	}
 
 	internal void insert_image () {
