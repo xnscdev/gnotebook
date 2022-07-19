@@ -1,0 +1,102 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- Created with Cambalache 0.10.3 -->
+<interface>
+  <!-- interface-name gnotebook.ui -->
+  <requires lib="gtk" version="4.6"/>
+  <template class="GNWindow" parent="GtkApplicationWindow">
+    <property name="default-height">840</property>
+    <property name="default-width">800</property>
+    <property name="title">GNotebook</property>
+    <child>
+      <object class="GtkBox">
+        <property name="orientation">vertical</property>
+        <child>
+          <object class="GtkBox">
+            <property name="css-classes">toolbar</property>
+            <child>
+              <object class="GtkButton" id="new_book_button">
+                <property name="icon-name">folder-new</property>
+                <signal name="clicked" handler="new_book_clicked"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="open_button">
+                <property name="icon-name">document-open</property>
+                <signal name="clicked" handler="open_clicked"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="new_button">
+                <property name="icon-name">document-new</property>
+                <signal name="clicked" handler="new_clicked"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="save_button">
+                <property name="icon-name">document-save</property>
+                <signal name="clicked" handler="save_clicked"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="undo_button">
+                <property name="icon-name">edit-undo</property>
+                <signal name="clicked" handler="undo_clicked"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="redo_button">
+                <property name="icon-name">edit-redo</property>
+                <signal name="clicked" handler="redo_clicked"/>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkFrame">
+            <property name="margin-bottom">8</property>
+            <property name="margin-end">8</property>
+            <property name="margin-start">8</property>
+            <property name="vexpand">True</property>
+            <child>
+              <object class="GtkPaned">
+                <child>
+                  <object class="GtkBox">
+                    <property name="orientation">vertical</property>
+                    <child>
+                      <object class="GtkTreeView" id="pages_view">
+                        <property name="reorderable">True</property>
+                        <property name="vexpand">True</property>
+                        <signal name="row-activated" handler="select_page"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkBox">
+                        <property name="css-classes">toolbar</property>
+                        <property name="homogeneous">True</property>
+                        <child>
+                          <object class="GtkButton" id="edit_button">
+                            <property name="icon-name">text-editor-symbolic</property>
+                            <signal name="clicked" handler="rename_page"/>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="delete_button">
+                            <property name="icon-name">edit-delete</property>
+                            <signal name="clicked" handler="delete_page"/>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkScrolledWindow" id="page_window"/>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+  </template>
+</interface>
