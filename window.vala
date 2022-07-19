@@ -9,6 +9,7 @@ public class GN.Window : ApplicationWindow {
 	}
 
 	private ArrayList<Page> pages = new ArrayList<Page> ();
+	private Page current_page;
 
 	[GtkChild]
 	private unowned TreeView pages_view;
@@ -35,6 +36,7 @@ public class GN.Window : ApplicationWindow {
 		model.append (out iter);
 		model.set (iter, 0, name);
 		pages.add (new Page ());
+		set_page (iter);
 	}
 
 	[GtkCallback]
@@ -58,6 +60,27 @@ public class GN.Window : ApplicationWindow {
 	}
 
 	[GtkCallback]
+	private void insert_text (Button button) {
+		if (current_page != null) {
+			current_page.insert_text ();
+		}
+	}
+
+	[GtkCallback]
+	private void insert_image (Button button) {
+		if (current_page != null) {
+			current_page.insert_image ();
+		}
+	}
+
+	[GtkCallback]
+	private void insert_video (Button button) {
+		if (current_page != null) {
+			current_page.insert_video ();
+		}
+	}
+
+	[GtkCallback]
 	private void rename_page (Button button) {
 		if (pages_view.get_selection ().get_selected (null, null)) {
 			var dialog = new RenameDialog (this);
@@ -73,6 +96,10 @@ public class GN.Window : ApplicationWindow {
 		TreeIter iter;
 		if (pages_view.get_selection ().get_selected (null, out iter)) {
 			int index = iter_index (iter);
+			if (current_page == pages.get (index)) {
+				current_page = null;
+				page_window.set_child (null);
+			}
 			pages.remove_at (index);
 			model.remove (ref iter);
 		}
@@ -116,8 +143,7 @@ public class GN.Window : ApplicationWindow {
 		var model = pages_view.get_model ();
 		TreeIter iter;
 		if (model.get_iter (out iter, path)) {
-			int index = iter_index (iter);
-			page_window.set_child (pages.get (index));
+			set_page (iter);
 		}
 	}
 
@@ -157,5 +183,11 @@ public class GN.Window : ApplicationWindow {
 		var path = model.get_path (iter);
 		return_if_fail (path.get_depth () == 1);
 		return path.get_indices ()[0];
+	}
+
+	private void set_page (TreeIter iter) {
+		int index = iter_index (iter);
+		current_page = pages.get (index);
+		page_window.set_child (current_page);
 	}
 }

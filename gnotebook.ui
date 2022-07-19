@@ -16,37 +16,64 @@
             <child>
               <object class="GtkButton" id="new_book_button">
                 <property name="icon-name">folder-new</property>
+                <property name="tooltip-text">New Notebook</property>
                 <signal name="clicked" handler="new_book_clicked"/>
               </object>
             </child>
             <child>
               <object class="GtkButton" id="open_button">
                 <property name="icon-name">document-open</property>
+                <property name="tooltip-text">Open Notebook</property>
                 <signal name="clicked" handler="open_clicked"/>
               </object>
             </child>
             <child>
               <object class="GtkButton" id="new_button">
                 <property name="icon-name">document-new</property>
+                <property name="tooltip-text">New Page</property>
                 <signal name="clicked" handler="new_clicked"/>
               </object>
             </child>
             <child>
               <object class="GtkButton" id="save_button">
                 <property name="icon-name">document-save</property>
+                <property name="tooltip-text">Save</property>
                 <signal name="clicked" handler="save_clicked"/>
               </object>
             </child>
             <child>
               <object class="GtkButton" id="undo_button">
                 <property name="icon-name">edit-undo</property>
+                <property name="tooltip-text">Undo</property>
                 <signal name="clicked" handler="undo_clicked"/>
               </object>
             </child>
             <child>
               <object class="GtkButton" id="redo_button">
                 <property name="icon-name">edit-redo</property>
+                <property name="tooltip-text">Redo</property>
                 <signal name="clicked" handler="redo_clicked"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="insert_text_button">
+                <property name="icon-name">accessories-text-editor</property>
+                <property name="tooltip-text">Insert Text</property>
+                <signal name="clicked" handler="insert_text"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="insert_image_button">
+                <property name="icon-name">applications-graphics</property>
+                <property name="tooltip-text">Insert Image</property>
+                <signal name="clicked" handler="insert_image"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="insert_video_button">
+                <property name="icon-name">applications-multimedia</property>
+                <property name="tooltip-text">Insert Video</property>
+                <signal name="clicked" handler="insert_video"/>
               </object>
             </child>
           </object>
@@ -79,24 +106,28 @@
                             <child>
                               <object class="GtkButton" id="edit_button">
                                 <property name="icon-name">text-editor-symbolic</property>
+                                <property name="tooltip-text">Rename Page</property>
                                 <signal name="clicked" handler="rename_page"/>
                               </object>
                             </child>
                             <child>
                               <object class="GtkButton" id="delete_button">
                                 <property name="icon-name">edit-delete</property>
+                                <property name="tooltip-text">Delete Page</property>
                                 <signal name="clicked" handler="delete_page"/>
                               </object>
                             </child>
                             <child>
                               <object class="GtkButton" id="up_button">
                                 <property name="icon-name">go-up</property>
+                                <property name="tooltip-text">Move Page Up</property>
                                 <signal name="clicked" handler="move_up"/>
                               </object>
                             </child>
                             <child>
                               <object class="GtkButton" id="down_button">
                                 <property name="icon-name">go-down</property>
+                                <property name="tooltip-text">Move Page Down</property>
                                 <signal name="clicked" handler="move_down"/>
                               </object>
                             </child>

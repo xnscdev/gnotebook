@@ -24,7 +24,10 @@
 	(1,23,"GtkButton","edit_button",22,None,None,None,None),
 	(1,24,"GtkButton","delete_button",22,None,None,None,1),
 	(1,25,"GtkButton","up_button",22,None,None,None,2),
-	(1,26,"GtkButton","down_button",22,None,None,None,3)
+	(1,26,"GtkButton","down_button",22,None,None,None,3),
+	(1,27,"GtkButton","insert_text_button",5,None,None,None,6),
+	(1,28,"GtkButton","insert_image_button",5,None,None,None,7),
+	(1,29,"GtkButton","insert_video_button",5,None,None,None,8)
   </object>
   <object_property>
 	(1,3,"GtkWindow","default-height","840",None,None,None,None,None),
@@ -33,25 +36,41 @@
 	(1,4,"GtkOrientable","orientation","vertical",None,None,None,None,None),
 	(1,5,"GtkWidget","css-classes","toolbar",None,None,None,None,None),
 	(1,9,"GtkButton","icon-name","document-new",None,None,None,None,None),
+	(1,9,"GtkWidget","tooltip-text","New Page",None,None,None,None,None),
 	(1,10,"GtkButton","icon-name","document-open",None,None,None,None,None),
+	(1,10,"GtkWidget","tooltip-text","Open Notebook",None,None,None,None,None),
 	(1,11,"GtkWidget","margin-bottom","8",None,None,None,None,None),
 	(1,11,"GtkWidget","margin-end","8",None,None,None,None,None),
 	(1,11,"GtkWidget","margin-start","8",None,None,None,None,None),
 	(1,11,"GtkWidget","vexpand","True",None,None,None,None,None),
 	(1,12,"GtkPaned","wide-handle","True",None,None,None,None,None),
 	(1,15,"GtkButton","icon-name","folder-new",None,None,None,None,None),
+	(1,15,"GtkWidget","tooltip-text","New Notebook",None,None,None,None,None),
 	(1,16,"GtkButton","icon-name","edit-redo",None,None,None,None,None),
+	(1,16,"GtkWidget","tooltip-text","Redo",None,None,None,None,None),
 	(1,17,"GtkButton","icon-name","edit-undo",None,None,None,None,None),
+	(1,17,"GtkWidget","tooltip-text","Undo",None,None,None,None,None),
 	(1,18,"GtkButton","icon-name","document-save",None,None,None,None,None),
+	(1,18,"GtkWidget","tooltip-text","Save",None,None,None,None,None),
 	(1,19,"GtkScrolledWindow","hscrollbar-policy","never",None,None,None,None,None),
 	(1,20,"GtkOrientable","orientation","vertical",None,None,None,None,None),
 	(1,21,"GtkWidget","vexpand","True",None,None,None,None,None),
 	(1,22,"GtkBox","homogeneous","True",None,None,None,None,None),
 	(1,22,"GtkWidget","css-classes","toolbar",None,None,None,None,None),
 	(1,23,"GtkButton","icon-name","text-editor-symbolic",None,None,None,None,None),
+	(1,23,"GtkWidget","tooltip-text","Rename Page",None,None,None,None,None),
 	(1,24,"GtkButton","icon-name","edit-delete",None,None,None,None,None),
+	(1,24,"GtkWidget","tooltip-text","Delete Page",None,None,None,None,None),
 	(1,25,"GtkButton","icon-name","go-up",None,None,None,None,None),
-	(1,26,"GtkButton","icon-name","go-down",None,None,None,None,None)
+	(1,25,"GtkWidget","tooltip-text","Move Page Up",None,None,None,None,None),
+	(1,26,"GtkButton","icon-name","go-down",None,None,None,None,None),
+	(1,26,"GtkWidget","tooltip-text","Move Page Down",None,None,None,None,None),
+	(1,27,"GtkButton","icon-name","accessories-text-editor",None,None,None,None,None),
+	(1,27,"GtkWidget","tooltip-text","Insert Text",None,None,None,None,None),
+	(1,28,"GtkButton","icon-name","applications-graphics",None,None,None,None,None),
+	(1,28,"GtkWidget","tooltip-text","Insert Image",None,None,None,None,None),
+	(1,29,"GtkButton","icon-name","applications-multimedia",None,None,None,None,None),
+	(1,29,"GtkWidget","tooltip-text","Insert Video",None,None,None,None,None)
   </object_property>
   <object_signal>
 	(1,1,9,"GtkButton","clicked","new_clicked",None,None,None,None,None),
@@ -64,6 +83,9 @@
 	(12,1,23,"GtkButton","clicked","rename_page",None,None,None,None,None),
 	(13,1,24,"GtkButton","clicked","delete_page",None,None,None,None,None),
 	(14,1,25,"GtkButton","clicked","move_up",None,None,None,None,None),
-	(15,1,26,"GtkButton","clicked","move_down",None,None,None,None,None)
+	(15,1,26,"GtkButton","clicked","move_down",None,None,None,None,None),
+	(16,1,27,"GtkButton","clicked","insert_text",None,None,None,None,None),
+	(17,1,28,"GtkButton","clicked","insert_image",None,None,None,None,None),
+	(18,1,29,"GtkButton","clicked","insert_video",None,None,None,None,None)
   </object_signal>
 </cambalache-project>
