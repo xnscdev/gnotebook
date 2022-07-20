@@ -10,6 +10,7 @@ public class GN.Window : ApplicationWindow {
 
 	private ArrayList<Page> pages = new ArrayList<Page> ();
 	private Page current_page;
+	private File file = null;
 
 	[GtkChild]
 	private unowned TreeView pages_view;
@@ -46,7 +47,19 @@ public class GN.Window : ApplicationWindow {
 
 	[GtkCallback]
 	private void save_clicked (Button button) {
-		print ("Save\n");
+		if (file == null) {
+			var dialog = new FileChooserDialog ("Save As", this,
+												FileChooserAction.SAVE,
+												"Cancel", ResponseType.CANCEL,
+												"Save", ResponseType.ACCEPT,
+												null);
+			dialog.set_current_name ("untitled.gnb");
+			dialog.show ();
+			dialog.response.connect (on_save_response);
+		}
+		else {
+			save_notebook ();
+		}
 	}
 
 	[GtkCallback]
@@ -155,6 +168,48 @@ public class GN.Window : ApplicationWindow {
 												  "text", 0);
 	}
 
+	private int iter_index (TreeIter iter) {
+		var model = pages_view.get_model ();
+		var path = model.get_path (iter);
+		return_val_if_fail (path.get_depth () == 1, -1);
+		return path.get_indices ()[0];
+	}
+
+	private void set_page (TreeIter iter) {
+		int index = iter_index (iter);
+		current_page = pages.get (index);
+		page_window.set_child (current_page);
+	}
+
+	private void on_save_response (Dialog source, int response_id) {
+		if (response_id == ResponseType.ACCEPT) {
+			var chooser = source as FileChooser;
+			file = chooser.get_file ();
+			save_notebook ();
+		}
+		source.destroy ();
+	}
+
+	private void save_notebook () {
+		try {
+			var writer = new NotebookWriter (file);
+			writer.write_header (pages.size);
+			for (var i = 0; i < pages.size; i++) {
+				var model = pages_view.get_model ();
+				var path = new TreePath.from_indices (i, -1);
+				TreeIter iter;
+				if (model.get_iter (out iter, path)) {
+					string name;
+					model.get (iter, 0, out name, -1);
+					writer.write_page (name, pages.get (i));
+				}
+			}
+			writer.write_final ();
+		} catch (Error e) {
+			print ("Error\n");
+		}
+	}
+
 	internal bool name_exists (string name) {
 		var model = pages_view.get_model () as Gtk.ListStore;
 		TreeIter iter;
@@ -176,18 +231,5 @@ public class GN.Window : ApplicationWindow {
 		if (pages_view.get_selection ().get_selected (null, out iter)) {
 			model.set (iter, 0, new_name, -1);
 		}
-	}
-
-	private int iter_index (TreeIter iter) {
-		var model = pages_view.get_model ();
-		var path = model.get_path (iter);
-		return_val_if_fail (path.get_depth () == 1, -1);
-		return path.get_indices ()[0];
-	}
-
-	private void set_page (TreeIter iter) {
-		int index = iter_index (iter);
-		current_page = pages.get (index);
-		page_window.set_child (current_page);
 	}
 }
