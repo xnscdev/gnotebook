@@ -1,4 +1,20 @@
+using Gdk;
+using Gee;
 using Gtk;
+
+private struct GN.TOCHeader {
+	uint32 magic;
+	uint32 version;
+	uint32 page_count;
+	uint32 reserved;
+	uint64 modify_time;
+}
+
+private struct GN.PageHeader {
+	uint32 magic;
+	uint32 entry_count;
+	uint64 modify_time;
+}
 
 private enum GN.EntryType {
 	TEXT,
@@ -6,112 +22,268 @@ private enum GN.EntryType {
 	VIDEO
 }
 
-private struct GN.PageEntry {
+private struct GN.EntryHeader {
 	uint32 type;
-	uint16 width;
-	uint16 height;
+	uint32 flags;
 	uint64 size;
 	uint64 length;
 }
 
-private struct GN.FileHeader {
-	char magic[4];
-	uint32 version;
-	uint64 page_count;
-	uint64 create_time;
+private struct GN.MediaHeader {
+	uint16 width;
+	uint16 height;
+	uint32 reserved;
+	uint64 size;
+	uint64 offset;
 }
 
-private struct GN.PageHeader {
-	uint64 name_length;
-	uint64 content_offset;
-	uint64 entry_count;
-}
-
+private const uint32 MAGIC = 0x424e472a;
 private const int VERSION = 1;
+private const string TOC_FILE = "TOC";
 
-public class GN.NotebookWriter {
-	public NotebookWriter (File? file) throws Error {
-		try {
-			file.delete ();
-		} catch (Error e) {}
-		stream = file.create (FileCreateFlags.REPLACE_DESTINATION);
+errordomain GN.NBError {
+	BAD_HEADER,
+    VERSION_NEW,
+	NO_PAGE,
+	BAD_PAGE,
+	TRUNCATED_PAGE,
+    BAD_ENTRY,
+	BAD_WIDGET,
+	TOC_UPDATE
+}
+
+private string page_path (string name) {
+	return Base64.encode (name.data).replace ("/", "_").replace ("=", "-");
+}
+
+public class GN.NotebookReader {
+	public NotebookReader (File dir) throws Error {
+	    var toc = new DataInputStream (dir.get_child (TOC_FILE).read ());
+		toc.set_byte_order (DataStreamByteOrder.LITTLE_ENDIAN);
+		var header = TOCHeader ();
+		header.magic = toc.read_uint32 ();
+		header.version = toc.read_uint32 ();
+		header.page_count = toc.read_uint32 ();
+		toc.skip (12);
+		if (header.magic != MAGIC) {
+			throw new NBError.BAD_HEADER ("Bad magic number in TOC header");
+		} else if (header.version > VERSION ) {
+			throw new NBError.VERSION_NEW ("Notebook version is too new");
+		}
+		for (var i = 0; i < header.page_count; i++) {
+			string name = toc.read_line (null);
+			if (name == null) {
+				break;
+			}
+			pages.add (name);
+		}
+		this.dir = dir;
 	}
 
-	private FileOutputStream stream;
-	private ulong[] page_table;
-	private ulong page_index;
-	private ulong page_count;
+	private File dir;
+	private ArrayList<string> pages = new ArrayList<string> ();
 
-	public void write_header (ulong page_count) throws Error {
-		var header = FileHeader ();
-		header.magic[0] = '*';
-		header.magic[1] = 'G';
-		header.magic[2] = 'N';
-		header.magic[3] = 'B';
+	public void read_page (Page page, int width, string name) throws Error {
+		var path = page_path (name);
+		DataInputStream stream;
+		try {
+			stream = new DataInputStream (dir.get_child (path).read ());
+		} catch (Error e) {
+			throw new NBError.NO_PAGE ("Page does not exist");
+		}
+		stream.set_byte_order (DataStreamByteOrder.LITTLE_ENDIAN);
+		var header = PageHeader ();
+		header.magic = stream.read_uint32 ();
+		header.entry_count = stream.read_uint32 ();
+		stream.skip (8);
+		if (header.magic != MAGIC) {
+			throw new NBError.BAD_PAGE ("Bad magic number in page header");
+		}
+
+		for (var i = 0; i < header.entry_count; i++) {
+			var eh = EntryHeader ();
+			eh.type = stream.read_uint32 ();
+			eh.flags = stream.read_uint32 ();
+			eh.size = stream.read_uint64 ();
+			eh.length = stream.read_uint64 ();
+			switch (eh.type) {
+			case EntryType.TEXT:
+				var buffer = new uint8[eh.length];
+				size_t size = stream.read (buffer);
+				if (size != eh.length) {
+					throw new NBError.TRUNCATED_PAGE ("Truncated page");
+				}
+				stream.skip ((size_t) (eh.size - eh.length));
+				var widget = new TextView ();
+				widget.buffer.text = (string) buffer;
+				page.add_text (widget);
+				break;
+			case EntryType.IMAGE:
+				var mh = MediaHeader ();
+				var images = new ArrayList<Picture> ();
+				for (var j = 0; j < eh.length; j++) {
+					mh.width = stream.read_uint16 ();
+					mh.height = stream.read_uint16 ();
+					stream.skip (4);
+					mh.size = stream.read_uint64 ();
+					mh.offset = stream.read_uint64 ();
+					var buffer = new uint8[mh.size];
+					size_t size = stream.read (buffer);
+					if (size != mh.size) {
+						throw new NBError.TRUNCATED_PAGE ("Truncated page");
+					}
+				    stream.skip ((size_t) (mh.offset - mh.size));
+					var texture = Texture.from_bytes (new Bytes (buffer));
+					var picture = new Picture.for_paintable (texture);
+					images.add (picture);
+				}
+				var widget = new ImageEntry (images, width, eh.flags);
+				page.append (widget);
+				break;
+			default:
+				throw new NBError.BAD_ENTRY ("Invalid entry type in page");
+			}
+		}
+	}
+
+	public ArrayList<string> page_names () {
+		return pages;
+	}
+
+	public void do_rename (string old_name, string new_name) throws Error {
+		File file = dir.get_child (page_path (old_name));
+		file.set_display_name (page_path (new_name));
+		var index = pages.index_of (old_name);
+		return_if_fail (index != -1);
+		pages.set (index, new_name);
+
+		var toc_file = dir.get_child (TOC_FILE);
+		string output = "";
+		{
+			var toc = new DataInputStream (toc_file.read ());
+			string? line = null;
+			while ((line = toc.read_line ()) != null) {
+				if (line == old_name) {
+					output += new_name;
+				} else {
+					output += line;
+				}
+				output += "\n";
+			}
+		}
+		if (!toc_file.replace_contents (output.data, null, false,
+										FileCreateFlags.NONE, null)) {
+			throw new NBError.TOC_UPDATE ("Failed to update TOC");
+		}
+	}
+
+	public void do_delete (string name) {
+		pages.remove (name);
+	}
+}
+
+public class GN.NotebookWriter {
+	public NotebookWriter (File dir) {
+		this.dir = dir;
+	}
+
+	private File dir;
+
+	public void write_toc (ArrayList<string> page_names) throws Error {
+		if (!dir.query_exists ()) {
+			dir.make_directory ();
+		}
+		var toc_file = dir.get_child (TOC_FILE);
+		try {
+			toc_file.delete ();
+		} catch (Error e) {}
+		var toc = new DataOutputStream (
+			toc_file.create (FileCreateFlags.REPLACE_DESTINATION));
+		toc.set_byte_order (DataStreamByteOrder.LITTLE_ENDIAN);
+		var header = TOCHeader ();
+		header.magic = MAGIC;
 		header.version = VERSION;
-		header.page_count = page_count;
-		header.create_time = get_real_time () / 1000000;
-		write_data ((uint8[]) header);
-
-		page_table = new ulong[page_count];
-		page_index = 0;
-		this.page_count = page_count;
-		stream.seek (sizeof (ulong) * page_count, SeekType.CUR);
+		header.page_count = page_names.size;
+		header.reserved = 0;
+		header.modify_time = get_real_time () / 1000000;
+		toc.write ((uint8[]) header);
+		foreach (string name in page_names) {
+			name += "\n";
+			toc.write (name.data);
+		}
 	}
 
 	public void write_page (string name, Page page) throws Error {
+		var path = page_path (name);
+		DataOutputStream stream;
+		var file = dir.get_child (path);
+		try {
+			file.delete ();
+		} catch (Error e) {}
+		stream = new DataOutputStream (
+			file.create (FileCreateFlags.REPLACE_DESTINATION));
+		stream.set_byte_order (DataStreamByteOrder.LITTLE_ENDIAN);
 		var header = PageHeader ();
-		header.name_length = name.length;
-		header.content_offset = ((header.name_length - 1) | 7) + 1;
+		header.magic = MAGIC;
 		header.entry_count = 0;
-
-		var offset = stream.tell ();
-		page_table[page_index++] = (ulong) offset;
-		var entry_offset =
-			offset + sizeof (PageHeader) + (int64) header.content_offset;
-		stream.seek (sizeof (PageHeader), SeekType.CUR);
-		write_data (name.data);
-		stream.seek (entry_offset, SeekType.SET);
+		for (var child = page.get_first_child (); child != null;
+			 child = child.get_next_sibling ()) {
+			header.entry_count++;
+		}
+		header.modify_time = get_real_time () / 1000000;
+		stream.write ((uint8[]) header);
 
 		for (var child = page.get_first_child (); child != null;
-			 child = child.get_next_sibling (), header.entry_count++) {
-			var entry = PageEntry ();
+			 child = child.get_next_sibling ()) {
+			var eh = EntryHeader ();
 			if (child is TextView) {
 				var widget = child as TextView;
-				var buffer = widget.get_buffer ();
-				TextIter start;
-				TextIter end;
-				buffer.get_bounds (out start, out end);
-				var text = buffer.get_text (start, end, false);
-				entry.type = EntryType.TEXT;
-				entry.width = entry.height = 0;
-				entry.length = text.length;
-				entry.size = ((entry.length - 1) | 7) + 1;
-				write_data ((uint8[]) entry);
-				write_data (text.data);
-				entry_offset += sizeof (PageEntry) + (int64) entry.size;
-				stream.seek (entry_offset, SeekType.SET);
+				eh.type = EntryType.TEXT;
+				eh.flags = 0;
+				eh.length = widget.buffer.text.length;
+				eh.size = ((eh.length - 1) | 7) + 1;
+				stream.write ((uint8[]) eh);
+				stream.put_string (widget.buffer.text);
+				for (var i = 0; i < eh.size - eh.length; i++) {
+					stream.put_byte ('\0');
+				}
+			} else if (child is ImageEntry) {
+				var widget = child as ImageEntry;
+				eh.type = EntryType.IMAGE;
+				eh.flags = widget.flags;
+				eh.length = widget.images;
+				eh.size = 0;
+				for (var c = widget.get_first_child (); c != null;
+					 c = c.get_next_sibling ()) {
+					var image = c as Picture;
+					var texture = image.get_paintable () as Texture;
+					var bytes =
+						texture.save_to_tiff_bytes ().get_data ().length;
+					bytes = ((bytes - 1) | 7) + 1;
+					eh.size += sizeof (MediaHeader) + bytes;
+				}
+				stream.write ((uint8[]) eh);
+
+				for (var c = widget.get_first_child (); c != null;
+					 c = c.get_next_sibling ()) {
+					var image = c as Picture;
+					var texture = image.get_paintable () as Texture;
+					var mh = MediaHeader ();
+					mh.width = (uint16) texture.width;
+					mh.height = (uint16) texture.height;
+					mh.reserved = 0;
+					var bytes = texture.save_to_tiff_bytes ().get_data ();
+					mh.size = bytes.length;
+					mh.offset = ((mh.size - 1) | 7) + 1;
+					stream.write ((uint8[]) mh);
+					stream.write (bytes);
+					for (var i = 0; i < mh.offset - mh.size; i++) {
+						stream.put_byte ('\0');
+					}
+				}
+			} else {
+				throw new NBError.BAD_WIDGET ("Found invalid widget in page");
 			}
-			else {
-				return_if_reached ();
-			}
-		}
-
-		stream.seek (offset, SeekType.SET);
-		write_data ((uint8[]) header);
-		stream.flush ();
-		stream.seek (entry_offset, SeekType.SET);
-	}
-
-	public void write_final () throws Error {
-		stream.seek (sizeof (FileHeader), SeekType.SET);
-		write_data ((uint8[]) page_table);
-	}
-
-	private void write_data (uint8[] data) throws Error {
-		long written = 0;
-		while (written < data.length) {
-			written += stream.write (data[written:data.length]);
 		}
 	}
 }

@@ -14,9 +14,11 @@ res = gnome.compile_resources('gnotebook-resources', 'gnotebook.gresource.xml',
 
 src = [
   'main.vala',
+  'media.vala',
   'notebook.vala',
   'page.vala',
   'rename.vala',
+  'undo.vala',
   'window.vala',
   res
 ]

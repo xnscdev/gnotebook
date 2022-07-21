@@ -8,9 +8,10 @@ public class GN.Window : ApplicationWindow {
 		setup_pages_view ();
 	}
 
-	private ArrayList<Page> pages = new ArrayList<Page> ();
+	private HashMap<string, Page> pages = new HashMap<string, Page> ();
+	private NotebookReader reader;
+	private File file;
 	private Page current_page;
-	private File file = null;
 
 	[GtkChild]
 	private unowned TreeView pages_view;
@@ -36,13 +37,18 @@ public class GN.Window : ApplicationWindow {
 		}
 		model.append (out iter);
 		model.set (iter, 0, name);
-		pages.add (new Page ());
+		pages.set (name, new Page ());
 		set_page (iter);
 	}
 
 	[GtkCallback]
 	private void open_clicked (Button button) {
-		print ("Open\n");
+		var dialog = new FileChooserDialog ("Open Notebook", this,
+											FileChooserAction.SELECT_FOLDER,
+											"Cancel", ResponseType.CANCEL,
+											"Open", ResponseType.ACCEPT, null);
+		dialog.show ();
+		dialog.response.connect (on_open_response);
 	}
 
 	[GtkCallback]
@@ -53,7 +59,6 @@ public class GN.Window : ApplicationWindow {
 												"Cancel", ResponseType.CANCEL,
 												"Save", ResponseType.ACCEPT,
 												null);
-			dialog.set_current_name ("untitled.gnb");
 			dialog.show ();
 			dialog.response.connect (on_save_response);
 		}
@@ -82,14 +87,14 @@ public class GN.Window : ApplicationWindow {
 	[GtkCallback]
 	private void insert_image (Button button) {
 		if (current_page != null) {
-			current_page.insert_image ();
+			current_page.insert_image (this);
 		}
 	}
 
 	[GtkCallback]
 	private void insert_video (Button button) {
 		if (current_page != null) {
-			current_page.insert_video ();
+			current_page.insert_video (this);
 		}
 	}
 
@@ -108,12 +113,14 @@ public class GN.Window : ApplicationWindow {
 		var model = pages_view.get_model () as Gtk.ListStore;
 		TreeIter iter;
 		if (pages_view.get_selection ().get_selected (null, out iter)) {
-			int index = iter_index (iter);
-			if (current_page == pages.get (index)) {
+			string name;
+			model.get (iter, 0, out name);
+			if (current_page == pages.get (name)) {
 				current_page = null;
 				page_window.set_child (null);
 			}
-			pages.remove_at (index);
+			pages.unset (name);
+			reader.do_delete (name);
 			model.remove (ref iter);
 		}
 	}
@@ -125,10 +132,6 @@ public class GN.Window : ApplicationWindow {
 		if (pages_view.get_selection ().get_selected (null, out iter)) {
 			TreeIter prev = iter.copy ();
 			if (model.iter_previous (ref prev)) {
-				int index = iter_index (iter);
-				var temp = pages.get (index - 1);
-				pages.set (index - 1, pages.get (index));
-				pages.set (index, temp);
 				model.move_before (ref iter, prev);
 			}
 		}
@@ -141,10 +144,6 @@ public class GN.Window : ApplicationWindow {
 		if (pages_view.get_selection ().get_selected (null, out iter)) {
 			TreeIter next = iter.copy ();
 			if (model.iter_next (ref next)) {
-				int index = iter_index (iter);
-				var temp = pages.get (index + 1);
-				pages.set (index + 1, pages.get (index));
-				pages.set (index, temp);
 				model.move_after (ref iter, next);
 			}
 		}
@@ -168,17 +167,40 @@ public class GN.Window : ApplicationWindow {
 												  "text", 0);
 	}
 
-	private int iter_index (TreeIter iter) {
-		var model = pages_view.get_model ();
-		var path = model.get_path (iter);
-		return_val_if_fail (path.get_depth () == 1, -1);
-		return path.get_indices ()[0];
+	private void set_page (TreeIter iter) {
+		var model = pages_view.get_model () as Gtk.ListStore;
+		string name;
+		model.get (iter, 0, out name);
+		current_page = pages.get (name);
+		if (current_page == null) {
+			var page = new Page ();
+			var alloc = Allocation ();
+			page_window.get_allocation (out alloc);
+			var page_width = alloc.width - page.margin_start - page.margin_end;
+			try {
+				reader.read_page (page, page_width, name);
+				pages.set (name, page);
+				current_page = page;
+			} catch (Error e) {
+				var dialog =
+					new MessageDialog (this, DialogFlags.DESTROY_WITH_PARENT,
+									   MessageType.ERROR, ButtonsType.CLOSE,
+									   "Error opening page");
+				dialog.secondary_text = e.message;
+				dialog.show ();
+				dialog.response.connect (dialog.destroy);
+			}
+		}
+		page_window.set_child (current_page);
 	}
 
-	private void set_page (TreeIter iter) {
-		int index = iter_index (iter);
-		current_page = pages.get (index);
-		page_window.set_child (current_page);
+	private void on_open_response (Dialog source, int response_id) {
+		if (response_id == ResponseType.ACCEPT) {
+			var chooser = source as FileChooser;
+			file = chooser.get_file ();
+			open_notebook ();
+		}
+		source.destroy ();
 	}
 
 	private void on_save_response (Dialog source, int response_id) {
@@ -190,23 +212,56 @@ public class GN.Window : ApplicationWindow {
 		source.destroy ();
 	}
 
+	private void open_notebook () {
+		var model = pages_view.get_model () as Gtk.ListStore;
+		model.clear ();
+		pages.clear ();
+		try {
+		    reader = new NotebookReader (file);
+			TreeIter iter;
+			foreach (string name in reader.page_names ()) {
+				model.append (out iter);
+				model.set (iter, 0, name);
+			}
+		} catch (Error e) {
+			model.clear ();
+			var dialog =
+				new MessageDialog (this, DialogFlags.DESTROY_WITH_PARENT,
+								   MessageType.ERROR, ButtonsType.CLOSE,
+								   "Error opening notebook");
+			dialog.secondary_text = e.message;
+			dialog.show ();
+			dialog.response.connect (dialog.destroy);
+		}
+	}
+
 	private void save_notebook () {
 		try {
 			var writer = new NotebookWriter (file);
-			writer.write_header (pages.size);
-			for (var i = 0; i < pages.size; i++) {
-				var model = pages_view.get_model ();
-				var path = new TreePath.from_indices (i, -1);
-				TreeIter iter;
-				if (model.get_iter (out iter, path)) {
+			var names = new ArrayList<string> ();
+			var model = pages_view.get_model ();
+			TreeIter iter;
+			if (model.get_iter_first (out iter)) {
+				do {
 					string name;
-					model.get (iter, 0, out name, -1);
-					writer.write_page (name, pages.get (i));
+					model.get (iter, 0, out name);
+					names.add (name);
+				} while (model.iter_next (ref iter));
+			}
+			writer.write_toc (names);
+			foreach (Map.Entry<string, Page> entry in pages) {
+				if (entry.value.modified ()) {
+					writer.write_page (entry.key, entry.value);
 				}
 			}
-			writer.write_final ();
 		} catch (Error e) {
-			print ("Error\n");
+			var dialog =
+				new MessageDialog (this, DialogFlags.DESTROY_WITH_PARENT,
+								   MessageType.ERROR, ButtonsType.CLOSE,
+								   "Error saving notebook");
+			dialog.secondary_text = e.message;
+			dialog.show ();
+			dialog.response.connect (dialog.destroy);
 		}
 	}
 
@@ -216,7 +271,7 @@ public class GN.Window : ApplicationWindow {
 		if (model.get_iter_first (out iter)) {
 			do {
 				string item_name;
-				model.get (iter, 0, out item_name, -1);
+				model.get (iter, 0, out item_name);
 				if (name == item_name) {
 					return true;
 				}
@@ -229,7 +284,27 @@ public class GN.Window : ApplicationWindow {
 		var model = pages_view.get_model () as Gtk.ListStore;
 		TreeIter iter;
 		if (pages_view.get_selection ().get_selected (null, out iter)) {
-			model.set (iter, 0, new_name, -1);
+			string old_name;
+			model.get (iter, 0, out old_name);
+			if (reader != null) {
+				try {
+					reader.do_rename (old_name, new_name);
+				} catch (Error e) {
+					var dialog =
+						new MessageDialog (this,
+										   DialogFlags.DESTROY_WITH_PARENT,
+										   MessageType.ERROR, ButtonsType.CLOSE,
+										   "Error renaming page");
+					dialog.secondary_text = e.message;
+					dialog.show ();
+					dialog.response.connect (dialog.destroy);
+					return;
+				}
+			}
+			model.set (iter, 0, new_name);
+			var page = pages.get (old_name);
+			pages.unset (old_name);
+			pages.set (new_name, page);
 		}
 	}
 }
