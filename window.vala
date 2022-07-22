@@ -290,6 +290,11 @@ public class GN.Window : ApplicationWindow {
 		return true;
 	}
 
+	internal void open_file (File file) {
+		this.file = file;
+		open_notebook ();
+	}
+
 	internal bool name_exists (string name) {
 		var model = pages_view.get_model () as Gtk.ListStore;
 		TreeIter iter;
