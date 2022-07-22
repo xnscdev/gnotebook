@@ -47,6 +47,7 @@ errordomain GN.NBError {
 	NO_PAGE,
 	BAD_PAGE,
 	TRUNCATED_PAGE,
+	MEDIA_COPY,
     BAD_ENTRY,
 	BAD_WIDGET,
 	TOC_UPDATE
@@ -132,7 +133,7 @@ public class GN.NotebookReader {
 					mh.size = stream.read_uint64 ();
 					mh.offset = stream.read_uint64 ();
 					var buffer = new uint8[mh.size];
-					size_t size = stream.read (buffer);
+					var size = stream.read (buffer);
 					if (size != mh.size) {
 						throw new NBError.TRUNCATED_PAGE ("Truncated page");
 					}
@@ -142,6 +143,30 @@ public class GN.NotebookReader {
 					images.add (picture);
 				}
 				var widget = new ImageEntry (images, width, eh.flags);
+				page.append (widget);
+				break;
+			case EntryType.MEDIA:
+				uint64 copied = 0;
+				FileIOStream ios;
+				var temp = File.new_tmp (null, out ios);
+				var temp_stream = new DataOutputStream (ios.output_stream);
+				while (copied < eh.size) {
+					var to_copy = eh.size - copied;
+					if (to_copy > 4096) {
+						to_copy = 4096;
+					}
+					var buffer = new uint8[to_copy];
+					var size = stream.read (buffer);
+					if (size != to_copy) {
+						throw new NBError.TRUNCATED_PAGE ("Truncated page");
+					}
+					size = temp_stream.write (buffer);
+					if (size != to_copy) {
+						throw new NBError.MEDIA_COPY ("Media copy error");
+					}
+					copied += to_copy;
+				}
+				var widget = new Video.for_file (temp);
 				page.append (widget);
 				break;
 			default:
@@ -289,6 +314,16 @@ public class GN.NotebookWriter {
 						stream.put_byte ('\0');
 					}
 				}
+			} else if (child is Video) {
+				var widget = child as Video;
+				var video = widget.get_file ();
+				eh.type = EntryType.MEDIA;
+				eh.flags = 0;
+				eh.length = 0;
+				eh.size = video.query_info ("standard::size", 0).get_size ();
+				stream.write ((uint8[]) eh);
+				var input = new DataInputStream (video.read ());
+				stream.splice (input, 0);
 			} else {
 				throw new NBError.BAD_WIDGET ("Found invalid widget in page");
 			}

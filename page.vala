@@ -71,8 +71,8 @@ public class GN.Page : Box {
 		dialog.response.connect (on_open_media);
 	}
 
-	public void add_media (Video video) {
-		append (video);
+	public void add_media (Video media) {
+		append (media);
 		large = true;
 	}
 
@@ -158,9 +158,9 @@ public class GN.Page : Box {
 			try {
 				var chooser = source as FileChooser;
 				var file = chooser.get_file ();
-				var stream = MediaFile.for_file (file);
-				var video = new Video.for_media_stream (stream);
-				add_media (video);
+				var media = new Video.for_file (file);
+				add_media (media);
+				add_undo (new CreateEntry (media));
 			} catch (Error e) {
 				var dialog =
 					new MessageDialog (null, DialogFlags.DESTROY_WITH_PARENT,
