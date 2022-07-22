@@ -69,12 +69,16 @@ public class GN.Window : ApplicationWindow {
 
 	[GtkCallback]
 	private void undo_clicked (Button button) {
-		print ("Undo\n");
+		if (current_page != null) {
+			current_page.do_undo ();
+		}
 	}
 
 	[GtkCallback]
 	private void redo_clicked (Button button) {
-		print ("Redo\n");
+		if (current_page != null) {
+			current_page.do_redo ();
+		}
 	}
 
 	[GtkCallback]

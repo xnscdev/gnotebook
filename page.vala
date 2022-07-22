@@ -13,7 +13,10 @@ public class GN.Page : Box {
 			margin_end: 15);
 	}
 
-	private GLib.Queue<UndoItem> undo_stack = new GLib.Queue<UndoItem> ();
+	private Gee.List<UndoItem> undo_stack = new ArrayList<UndoItem> ();
+	private int undo_index;
+	private bool no_delete;
+	private bool no_insert;
 
 	public void insert_text () {
 		var view = new TextView ();
@@ -25,8 +28,8 @@ public class GN.Page : Box {
 		view.top_margin = view.bottom_margin = view.left_margin =
 			view.right_margin = 10;
 		view.buffer.set_enable_undo (false);
-		view.insert_at_cursor.connect (do_text_insert);
-		view.delete_from_cursor.connect (do_text_delete);
+		view.buffer.insert_text.connect (do_text_insert);
+		view.buffer.delete_range.connect (do_text_delete);
 		append (view);
 	}
 
@@ -47,6 +50,46 @@ public class GN.Page : Box {
 	}
 
 	public void insert_video (Gtk.Window window) {
+	}
+
+	public bool modified () {
+		return undo_stack.size != 0;
+	}
+
+	public void do_undo () {
+		if (undo_index > 0) {
+			var item = undo_stack.get (--undo_index);
+			item.do_undo (this);
+		}
+	}
+
+	public void do_redo () {
+		if (undo_index < undo_stack.size) {
+			var item = undo_stack.get (undo_index++);
+			item.do_redo (this);
+		}
+	}
+
+	private void do_text_insert (TextBuffer source, ref TextIter pos,
+								 string text, int length) {
+		if (!no_insert) {
+			add_undo (new TextInsert (pos, text));
+		}
+	}
+
+	private void do_text_delete (TextBuffer source, TextIter start,
+								 TextIter end) {
+		if (!no_delete) {
+			add_undo (new TextDelete (start, end));
+		}
+	}
+
+	private void add_undo (UndoItem item) {
+		if (undo_index < undo_stack.size) {
+			undo_stack = undo_stack.slice (0, undo_index);
+		}
+		undo_stack.add (item);
+		undo_index++;
 	}
 
 	private void on_open_image (Dialog source, int response_id) {
@@ -85,15 +128,19 @@ public class GN.Page : Box {
 		source.destroy ();
 	}
 
-	private void do_text_insert (TextView source, string text) {
-		print ("Insert\n");
+	internal void mask_delete () {
+		no_delete = true;
 	}
 
-	private void do_text_delete (TextView source, DeleteType type, int count) {
-		print ("Delete\n");
+	internal void unmask_delete () {
+		no_delete = false;
 	}
 
-	public bool modified () {
-		return undo_stack.length != 0;
+	internal void mask_insert () {
+		no_insert = true;
+	}
+
+	internal void unmask_insert () {
+		no_insert = false;
 	}
 }
