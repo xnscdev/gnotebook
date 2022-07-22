@@ -190,8 +190,7 @@ public class GN.Window : ApplicationWindow {
 			var page_width = alloc.width - page.margin_start - page.margin_end;
 			try {
 				reader.read_page (page, page_width, name);
-				pages.set (name, page);
-				current_page = page;
+			} catch (NBError.NO_PAGE e) {
 			} catch (Error e) {
 				var dialog =
 					new MessageDialog (this, DialogFlags.DESTROY_WITH_PARENT,
@@ -200,7 +199,10 @@ public class GN.Window : ApplicationWindow {
 				dialog.secondary_text = e.message;
 				dialog.show ();
 				dialog.response.connect (dialog.destroy);
+				return;
 			}
+			pages.set (name, page);
+			current_page = page;
 		}
 		page_window.set_child (current_page);
 	}
