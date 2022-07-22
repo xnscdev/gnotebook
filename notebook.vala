@@ -82,6 +82,8 @@ public class GN.NotebookReader {
 
 	private File dir;
 	private ArrayList<string> pages = new ArrayList<string> ();
+	private HashMap<string, string> to_rename = new HashMap<string, string> ();
+	private ArrayList<string> to_delete = new ArrayList<string> ();
 
 	public void read_page (Page page, int width, string name) throws Error {
 		var path = page_path (name);
@@ -152,39 +154,39 @@ public class GN.NotebookReader {
 		return pages;
 	}
 
-	public void do_rename (string old_name, string new_name) throws Error {
-		File file = dir.get_child (page_path (old_name));
-		if (!file.query_exists ()) {
-			return;
-		}
-		file.set_display_name (page_path (new_name));
+	public void do_rename (string old_name, string new_name) {
 		var index = pages.index_of (old_name);
 		return_if_fail (index != -1);
 		pages.set (index, new_name);
-
-		var toc_file = dir.get_child (TOC_FILE);
-		string output = "";
-		{
-			var toc = new DataInputStream (toc_file.read ());
-			toc.skip (sizeof (TOCHeader));
-			string? line = null;
-			while ((line = toc.read_line ()) != null) {
-				if (line == old_name) {
-					output += new_name;
-				} else {
-					output += line;
-				}
-				output += "\n";
-			}
-		}
-		if (!toc_file.replace_contents (output.data, null, false,
-										FileCreateFlags.NONE, null)) {
-			throw new NBError.TOC_UPDATE ("Failed to update TOC");
-		}
+		to_rename.set (old_name, new_name);
 	}
 
 	public void do_delete (string name) {
 		pages.remove (name);
+		to_delete.add (name);
+	}
+
+	public void do_insert (string name) {
+		pages.add (name);
+		to_delete.remove (name);
+	}
+
+	public void sync () throws Error {
+		foreach (string name in to_delete) {
+			var path = page_path (name);
+			var file = dir.get_child (path);
+			try {
+				file.delete ();
+			} catch (Error e) {}
+		}
+		foreach (Map.Entry<string, string> entry in to_rename) {
+			var old_path = page_path (entry.key);
+			var new_path = page_path (entry.value);
+			var file = dir.get_child (old_path);
+			if (file.query_exists ()) {
+				file.set_display_name (new_path);
+			}
+		}
 	}
 }
 

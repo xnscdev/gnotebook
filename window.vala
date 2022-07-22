@@ -48,6 +48,7 @@ public class GN.Window : ApplicationWindow {
 		model.set (iter, 0, name);
 		pages.set (name, new Page ());
 		set_page (iter);
+		reader?.do_insert (name);
 	}
 
 	[GtkCallback]
@@ -252,6 +253,7 @@ public class GN.Window : ApplicationWindow {
 
 	private void save_notebook () {
 		try {
+			reader?.sync ();
 			var writer = new NotebookWriter (file);
 			var names = new ArrayList<string> ();
 			var model = pages_view.get_model ();
@@ -318,21 +320,7 @@ public class GN.Window : ApplicationWindow {
 		if (pages_view.get_selection ().get_selected (null, out iter)) {
 			string old_name;
 			model.get (iter, 0, out old_name);
-			if (reader != null) {
-				try {
-					reader.do_rename (old_name, new_name);
-				} catch (Error e) {
-					var dialog =
-						new MessageDialog (this,
-										   DialogFlags.DESTROY_WITH_PARENT,
-										   MessageType.ERROR, ButtonsType.CLOSE,
-										   "Error renaming page");
-					dialog.secondary_text = e.message;
-					dialog.show ();
-					dialog.response.connect (dialog.destroy);
-					return;
-				}
-			}
+			reader?.do_rename (old_name, new_name);
 			model.set (iter, 0, new_name);
 			var page = pages.get (old_name);
 			pages.unset (old_name);
