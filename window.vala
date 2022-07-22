@@ -8,10 +8,19 @@ public class GN.Window : ApplicationWindow {
 		setup_pages_view ();
 	}
 
+	static construct {
+		add_shortcut (new Shortcut (
+						  ShortcutTrigger.parse_string ("<Control>Z"),
+						  new CallbackAction (do_undo_shortcut)));
+		add_shortcut (new Shortcut (
+						  ShortcutTrigger.parse_string ("<Control><Shift>Z"),
+						  new CallbackAction (do_redo_shortcut)));
+	}
+
 	private HashMap<string, Page> pages = new HashMap<string, Page> ();
-	private NotebookReader reader;
-	private File file;
-	private Page current_page;
+	private NotebookReader? reader;
+	private File? file;
+	private Page? current_page;
 
 	[GtkChild]
 	private unowned TreeView pages_view;
@@ -71,16 +80,12 @@ public class GN.Window : ApplicationWindow {
 
 	[GtkCallback]
 	private void undo_clicked (Button button) {
-		if (current_page != null) {
-			current_page.do_undo ();
-		}
+		current_page?.do_undo ();
 	}
 
 	[GtkCallback]
 	private void redo_clicked (Button button) {
-		if (current_page != null) {
-			current_page.do_redo ();
-		}
+		current_page?.do_redo ();
 	}
 
 	[GtkCallback]
@@ -271,6 +276,18 @@ public class GN.Window : ApplicationWindow {
 			dialog.show ();
 			dialog.response.connect (dialog.destroy);
 		}
+	}
+
+	private static bool do_undo_shortcut (Widget widget) {
+		var window = widget as GN.Window;
+		window.current_page?.do_undo ();
+		return true;
+	}
+
+	private static bool do_redo_shortcut (Widget widget) {
+		var window = widget as GN.Window;
+		window.current_page?.do_redo ();
+		return true;
 	}
 
 	internal bool name_exists (string name) {
