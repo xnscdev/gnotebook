@@ -17,6 +17,8 @@ public class GN.Page : Box {
 	private int undo_index;
 	private bool no_delete;
 	private bool no_insert;
+	private int images;
+	public bool large;
 
 	public void insert_text () {
 		var view = new TextView ();
@@ -50,7 +52,28 @@ public class GN.Page : Box {
 		dialog.response.connect (on_open_image);
 	}
 
-	public void insert_video (Gtk.Window window) {
+	public void add_image (ImageEntry entry) {
+		append (entry);
+		large = ++images >= 4;
+	}
+
+	public void insert_media (Gtk.Window window) {
+		var dialog = new FileChooserDialog ("Open Media", window,
+											FileChooserAction.OPEN,
+											"Cancel", ResponseType.CANCEL,
+											"Open", ResponseType.ACCEPT,
+											null);
+		var filter = new FileFilter ();
+		filter.add_mime_type ("audio/ *");
+		filter.add_mime_type ("video/ *");
+		dialog.add_filter (filter);
+		dialog.show ();
+		dialog.response.connect (on_open_media);
+	}
+
+	public void add_media (Video video) {
+		append (video);
+		large = true;
 	}
 
 	public bool modified () {
@@ -115,13 +138,34 @@ public class GN.Page : Box {
 				get_allocation (out alloc);
 				var page_width = alloc.width - margin_start - margin_end;
 				var image = new ImageEntry (images, page_width, flags);
-				append (image);
+				add_image (image);
 				add_undo (new CreateEntry (image));
 			} catch (Error e) {
 				var dialog =
 					new MessageDialog (null, DialogFlags.DESTROY_WITH_PARENT,
 									   MessageType.ERROR, ButtonsType.CLOSE,
 									   "Error opening images");
+				dialog.secondary_text = e.message;
+				dialog.show ();
+				dialog.response.connect (dialog.destroy);
+			}
+		}
+		source.destroy ();
+	}
+
+	private void on_open_media (Dialog source, int response_id) {
+		if (response_id == ResponseType.ACCEPT) {
+			try {
+				var chooser = source as FileChooser;
+				var file = chooser.get_file ();
+				var stream = MediaFile.for_file (file);
+				var video = new Video.for_media_stream (stream);
+				add_media (video);
+			} catch (Error e) {
+				var dialog =
+					new MessageDialog (null, DialogFlags.DESTROY_WITH_PARENT,
+									   MessageType.ERROR, ButtonsType.CLOSE,
+									   "Error opening media");
 				dialog.secondary_text = e.message;
 				dialog.show ();
 				dialog.response.connect (dialog.destroy);

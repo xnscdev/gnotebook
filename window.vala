@@ -21,6 +21,7 @@ public class GN.Window : ApplicationWindow {
 	private NotebookReader? reader;
 	private File? file;
 	private Page? current_page;
+	private string? current_name;
 
 	[GtkChild]
 	private unowned TreeView pages_view;
@@ -91,23 +92,17 @@ public class GN.Window : ApplicationWindow {
 
 	[GtkCallback]
 	private void insert_text (Button button) {
-		if (current_page != null) {
-			current_page.insert_text ();
-		}
+	    current_page?.insert_text ();
 	}
 
 	[GtkCallback]
 	private void insert_image (Button button) {
-		if (current_page != null) {
-			current_page.insert_image (this);
-		}
+	    current_page?.insert_image (this);
 	}
 
 	[GtkCallback]
 	private void insert_video (Button button) {
-		if (current_page != null) {
-			current_page.insert_video (this);
-		}
+	    current_page?.insert_media (this);
 	}
 
 	[GtkCallback]
@@ -129,6 +124,7 @@ public class GN.Window : ApplicationWindow {
 			model.get (iter, 0, out name);
 			if (current_page == pages.get (name)) {
 				current_page = null;
+				current_name = null;
 				page_window.set_child (null);
 			}
 			pages.unset (name);
@@ -183,6 +179,10 @@ public class GN.Window : ApplicationWindow {
 		var model = pages_view.get_model () as Gtk.ListStore;
 		string name;
 		model.get (iter, 0, out name);
+		if (current_page != null && !current_page.modified ()
+			&& current_page.large) {
+			pages.unset (current_name);
+		}
 		current_page = pages.get (name);
 		if (current_page == null) {
 			var page = new Page ();
@@ -205,6 +205,7 @@ public class GN.Window : ApplicationWindow {
 			pages.set (name, page);
 			current_page = page;
 		}
+		current_name = name;
 		page_window.set_child (current_page);
 	}
 
@@ -238,6 +239,7 @@ public class GN.Window : ApplicationWindow {
 				model.set (iter, 0, name);
 			}
 			current_page = null;
+			current_name = null;
 			page_window.set_child (null);
 		} catch (Error e) {
 			model.clear ();

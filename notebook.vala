@@ -19,7 +19,7 @@ private struct GN.PageHeader {
 private enum GN.EntryType {
 	TEXT,
 	IMAGE,
-	VIDEO
+	MEDIA
 }
 
 private struct GN.EntryHeader {
