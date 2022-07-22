@@ -152,6 +152,9 @@ public class GN.NotebookReader {
 
 	public void do_rename (string old_name, string new_name) throws Error {
 		File file = dir.get_child (page_path (old_name));
+		if (!file.query_exists ()) {
+			return;
+		}
 		file.set_display_name (page_path (new_name));
 		var index = pages.index_of (old_name);
 		return_if_fail (index != -1);
@@ -161,6 +164,7 @@ public class GN.NotebookReader {
 		string output = "";
 		{
 			var toc = new DataInputStream (toc_file.read ());
+			toc.skip (sizeof (TOCHeader));
 			string? line = null;
 			while ((line = toc.read_line ()) != null) {
 				if (line == old_name) {

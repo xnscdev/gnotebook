@@ -21,6 +21,7 @@ public class GN.Page : Box {
 	public void insert_text () {
 		var view = new TextView ();
 		add_text (view);
+		add_undo (new CreateEntry (view));
 	}
 
 	public void add_text (TextView view) {
@@ -115,6 +116,7 @@ public class GN.Page : Box {
 				var page_width = alloc.width - margin_start - margin_end;
 				var image = new ImageEntry (images, page_width, flags);
 				append (image);
+				add_undo (new CreateEntry (image));
 			} catch (Error e) {
 				var dialog =
 					new MessageDialog (null, DialogFlags.DESTROY_WITH_PARENT,

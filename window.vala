@@ -47,6 +47,7 @@ public class GN.Window : ApplicationWindow {
 											FileChooserAction.SELECT_FOLDER,
 											"Cancel", ResponseType.CANCEL,
 											"Open", ResponseType.ACCEPT, null);
+		dialog.set_create_folders (false);
 		dialog.show ();
 		dialog.response.connect (on_open_response);
 	}
@@ -55,10 +56,11 @@ public class GN.Window : ApplicationWindow {
 	private void save_clicked (Button button) {
 		if (file == null) {
 			var dialog = new FileChooserDialog ("Save As", this,
-												FileChooserAction.SAVE,
+												FileChooserAction.SELECT_FOLDER,
 												"Cancel", ResponseType.CANCEL,
 												"Save", ResponseType.ACCEPT,
 												null);
+			dialog.set_create_folders (true);
 			dialog.show ();
 			dialog.response.connect (on_save_response);
 		}
@@ -227,6 +229,8 @@ public class GN.Window : ApplicationWindow {
 				model.append (out iter);
 				model.set (iter, 0, name);
 			}
+			current_page = null;
+			page_window.set_child (null);
 		} catch (Error e) {
 			model.clear ();
 			var dialog =

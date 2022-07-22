@@ -66,3 +66,26 @@ public class GN.TextDelete : UndoItem {
 		page.unmask_delete ();
 	}
 }
+
+public class GN.CreateEntry : UndoItem {
+	public CreateEntry (Widget widget) {
+		base ();
+		this.widget = widget;
+		sibling = widget.get_prev_sibling ();
+	}
+
+	private Widget widget;
+	private Widget? sibling;
+
+	public override void do_undo (Page page) {
+		page.remove (widget);
+	}
+
+	public override void do_redo (Page page) {
+		if (sibling == null) {
+			page.prepend (widget);
+		} else {
+			page.insert_child_after (widget, sibling);
+		}
+	}
+}
