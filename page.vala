@@ -71,7 +71,8 @@ public class GN.Page : Box {
 		dialog.response.connect (on_open_media);
 	}
 
-	public void add_media (Video media) {
+	public void add_media (Video media, int page_width) {
+		media.set_size_request (page_width, page_width);
 		append (media);
 		large = true;
 	}
@@ -159,7 +160,10 @@ public class GN.Page : Box {
 				var chooser = source as FileChooser;
 				var file = chooser.get_file ();
 				var media = new Video.for_file (file);
-				add_media (media);
+				var alloc = Allocation ();
+				get_allocation (out alloc);
+				var page_width = alloc.width - margin_start - margin_end;
+				add_media (media, page_width);
 				add_undo (new CreateEntry (media));
 			} catch (Error e) {
 				var dialog =

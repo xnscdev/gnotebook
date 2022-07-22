@@ -143,7 +143,7 @@ public class GN.NotebookReader {
 					images.add (picture);
 				}
 				var widget = new ImageEntry (images, width, eh.flags);
-				page.append (widget);
+				page.add_image (widget);
 				break;
 			case EntryType.MEDIA:
 				uint64 copied = 0;
@@ -167,7 +167,7 @@ public class GN.NotebookReader {
 					copied += to_copy;
 				}
 				var widget = new Video.for_file (temp);
-				page.append (widget);
+				page.add_media (widget, width);
 				break;
 			default:
 				throw new NBError.BAD_ENTRY ("Invalid entry type in page");
