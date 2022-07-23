@@ -111,16 +111,19 @@ public class GN.NotebookReader {
 			eh.length = stream.read_uint64 ();
 			switch (eh.type) {
 			case EntryType.TEXT:
-				var widget = new TextView ();
+				var buffer = new TextBuffer (null);
 				if (eh.length > 0) {
-					var buffer = new uint8[eh.length];
-					size_t size = stream.read (buffer);
+					var data = new uint8[eh.length];
+					size_t size = stream.read (data);
 					if (size != eh.length) {
 						throw new NBError.TRUNCATED_PAGE ("Truncated page");
 					}
 					stream.skip ((size_t) (eh.size - eh.length));
-					widget.buffer.text = (string) buffer;
+					data.resize ((int) (eh.length + 1));
+					data[eh.length] = '\0';
+					buffer.set_text ((string) data);
 				}
+				var widget = new TextView.with_buffer (buffer);
 				page.add_text (widget);
 				break;
 			case EntryType.IMAGE:
